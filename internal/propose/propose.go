@@ -35,6 +35,20 @@ func (main Main) Create(proposeRequest Request ) error {
 	return nil
 }
 
+func (main Main) CheckIfUserAlreadyHasPropose(cpf string) error {
+	row, err  := main.DB.Raw(
+		fmt.Sprintf("SELECT count(*) FROM PROPOSE p where p.cpf = %s",
+			cpf,
+		)).Rows()
+	if err != nil {
+		return fmt.Errorf("error finding propose %s", row.Err())
+	}
+	if row.Next() {
+		return fmt.Errorf("user already has propose")
+	}
+	return nil
+}
+
 func (main Main) Validate(proposeRequest Request ) error {
 	err := ValidateNonNull(proposeRequest)
 	if err != nil {

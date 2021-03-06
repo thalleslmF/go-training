@@ -17,6 +17,15 @@ func Create(main proposeMain.ProposeUsecases) func(w http.ResponseWriter, h *htt
 			errMessage := err.Error()
 			http.Error(w,  errMessage, http.StatusBadRequest)
 		}
-		main.Create(propose)
+		err = main.CheckIfUserAlreadyHasPropose(propose.Cpf)
+		if err != nil {
+			errMessage := err.Error()
+			http.Error(w,  errMessage, http.StatusBadRequest)
+		}
+		err = main.Create(propose)
+		if err != nil {
+			errMessage := err.Error()
+			http.Error(w,  errMessage, http.StatusInternalServerError)
+		}
 	}
 }

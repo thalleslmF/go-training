@@ -10,6 +10,7 @@ type ProposeUsecases interface {
 	FindById(proposeId string) Propose
 	ParsePropose(request io.ReadCloser) (Request, error)
 	Validate(proposeRequest Request) error
+	CheckIfUserAlreadyHasPropose(cpf string) error
 }
 
 type Main struct {
