@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"time"
-	propose2 "training/api/v1/propose"
+	proposeApi "training/api/v1/propose"
 	"training/internal/propose"
 )
 
@@ -26,6 +26,6 @@ func (api Api) Start(router *mux.Router){
 }
 func(api Api) NewApi() *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/propose", propose2.Create(api.ProposeMain)).Methods("POST")
+	router.HandleFunc("/propose", proposeApi.Create(api.ProposeMain)).Methods("POST")
 	return router
 }

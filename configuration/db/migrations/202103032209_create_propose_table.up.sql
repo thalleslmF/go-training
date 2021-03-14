@@ -1,4 +1,4 @@
-CREATE TABLE PROPOSE (
+CREATE TABLE IF NOT EXISTS PROPOSE  (
     cpf varchar(32) primary key,
     name varchar(64),
     email varchar(64),

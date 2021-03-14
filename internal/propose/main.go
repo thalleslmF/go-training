@@ -6,11 +6,14 @@ import (
 )
 
 type ProposeUsecases interface {
-	Create(proposeRequest Request) error
+	Create(propose Propose) error
 	FindById(proposeId string) Propose
 	ParsePropose(request io.ReadCloser) (Request, error)
 	Validate(proposeRequest Request) error
 	CheckIfUserAlreadyHasPropose(cpf string) error
+	CheckIfProposeIsAvailable(propose Request) (ClientResponse, error)
+	CheckIfCardWasGenerated(propose Propose)  error
+	GenerateCard(response ClientResponse)
 }
 
 type Main struct {
