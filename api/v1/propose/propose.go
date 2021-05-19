@@ -3,7 +3,9 @@ package propose
 import (
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"reflect"
 	"time"
+	"training/internal/card"
 	proposeMain "training/internal/propose"
 )
 
@@ -45,22 +47,23 @@ func Create(main proposeMain.ProposeUsecases) func(w http.ResponseWriter, h *htt
 			http.Error(w,  errMessage, http.StatusInternalServerError)
 		}
 		ticker := time.NewTicker(500 * time.Millisecond)
-		done := make(chan bool)
+		done := time.After( 10 * time.Second)
 		go func() {
 			for {
 				select{
 					case <- done:
 						return
 					case <-ticker.C :
-						err := main.CheckIfCardWasGenerated(proposeDomain)
+						createdCard, err := main.CheckIfCardWasGenerated(proposeDomain)
 						if err != nil {
 							http.Error(w,  err.Error(), http.StatusInternalServerError)
+							ticker.Stop()
+						}
+						if !reflect.DeepEqual(card.ClientCardResponse{}, createdCard) {
 							ticker.Stop()
 						}
 				}
 			}
 		}()
-		time.Sleep(10 * time.Second)
-		done <- true
 	}
 }
