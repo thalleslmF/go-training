@@ -3,6 +3,7 @@ package propose
 import (
 	"gorm.io/gorm"
 	"io"
+	"training/internal/card"
 )
 
 type ProposeUsecases interface {
@@ -12,7 +13,7 @@ type ProposeUsecases interface {
 	Validate(proposeRequest Request) error
 	CheckIfUserAlreadyHasPropose(cpf string) error
 	CheckIfProposeIsAvailable(propose Request) (ClientResponse, error)
-	CheckIfCardWasGenerated(propose Propose)  error
+	CheckIfCardWasGenerated(propose Propose)  (card.ClientCardResponse, error)
 	GenerateCard(response ClientResponse)
 }
 

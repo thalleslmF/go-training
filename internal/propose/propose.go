@@ -1,15 +1,14 @@
 package propose
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"training/internal/card"
+	"training/internal/utils/http"
 	"training/internal/utils/validator"
 )
 
@@ -56,56 +55,44 @@ func (main Main) Create(propose Propose ) error {
 	return nil
 }
 func (main Main) GenerateCard(response ClientResponse ) {
-	client := http.Client{}
-	logrus.Info("Creating response")
-	responseBytes,_ := json.Marshal(response)
-	req, err := http.NewRequest("POST", "http://localhost:8888/api/cartoes", bytes.NewReader(responseBytes))
+	var clientResponseBytes,_ = json.Marshal(response)
+
+	headersMap := make(map[string]string)
+	headersMap["Content-Type"] = "application/json"
+	responseRequest, err := http.MakeRequest(
+		"POST",
+		"http://localhost:8888/api/cartoes",
+		clientResponseBytes, headersMap, nil )
 	if err != nil {
-		logrus.Error(fmt.Errorf("Error creating request", err.Error()))
+		 fmt.Errorf("Error parsing response", err.Error())
 	}
-	req.Header.Add("Content-Type","application/json")
-	res, err := client.Do(req)
-	if err != nil {
-		logrus.Error(fmt.Errorf("Error making request", err.Error()))
-	}
-	responseBytes, _ = ioutil.ReadAll(res.Body)
-	if res.StatusCode != 201 {
-		logrus.Error(fmt.Errorf("Error making request", req.URL));
-		logrus.Error(fmt.Errorf("Error making request", res.StatusCode));
+	responseBytes, _ := ioutil.ReadAll(responseRequest.Body)
+	defer responseRequest.Body.Close()
+	if responseRequest.StatusCode != 201 {
 		logrus.Error(fmt.Errorf("Error making request", string(responseBytes)));
 	}
-	defer res.Body.Close()
 }
-func (main Main) CheckIfCardWasGenerated(propose Propose) error {
-	client := http.Client{}
+func (main Main) CheckIfCardWasGenerated(propose Propose) (card.ClientCardResponse, error) {
+	headersMap := make(map[string]string)
+	paramsMap := make(map[string]string)
 	cardResponse := card.ClientCardResponse{}
-	logrus.Info("Creating response")
-	req, err := http.NewRequest("GET", "http://localhost:8888/api/cartoes", nil)
-	if err != nil {
-		return fmt.Errorf("Error creating request", err.Error())
-	}
+	headersMap["Content-Type"] = "application/json"
+	paramsMap["idProposta"] = propose.IdPropose
 
-	req.Header.Add("Content-Type","application/json")
-	q := req.URL.Query()
-	q.Add("idProposta", propose.IdPropose)
-	req.URL.RawQuery = q.Encode()
-	logrus.Info("Making request")
-	response,err := client.Do(req)
-	if err  != nil {
-		return fmt.Errorf("Error making request", err.Error())
-	}
-
-	err = json.NewDecoder(response.Body).Decode(&cardResponse)
-	if err != nil {
-
-		return fmt.Errorf("Error parsing response", err.Error())
-	}
+	response, err := http.MakeRequest("GET", "http://localhost:8888/api/cartoes", nil, headersMap, paramsMap)
 	defer response.Body.Close()
-	logrus.Info("Response status code ", response.StatusCode)
-	logrus.Info("Req url ", req.URL.String())
-	logrus.Info("Response body ",cardResponse)
+	if err  != nil {
+		return cardResponse, err
+	}
+	err = json.NewDecoder(response.Body).Decode(&cardResponse)
 
-	return nil
+
+	if err != nil {
+
+		return cardResponse, fmt.Errorf("Error parsing response", err.Error())
+	}
+	logrus.Println("card generated", cardResponse)
+	return cardResponse, nil
 }
 
 func (main Main) CheckIfUserAlreadyHasPropose(cpf string) error {
@@ -143,11 +130,10 @@ func (main Main) Validate(proposeRequest Request ) error {
 }
 
 func (main Main) CheckIfProposeIsAvailable(propose Request) (ClientResponse, error) {
+	clientResponse := ClientResponse{}
 
-	client := &http.Client{
-	}
-	clientResponse := ClientResponse{
-	}
+	headersMap := make(map[string]string)
+	headersMap["Content-Type"] = "application/json"
 	logrus.Println("Generating uuid", propose)
 	uuid, err := uuid.NewUUID()
 	stringId, err := uuid.MarshalText()
@@ -161,24 +147,22 @@ func (main Main) CheckIfProposeIsAvailable(propose Request) (ClientResponse, err
 	}
 
 	byteRequest, err :=json.Marshal(clientRequest)
-	logrus.Println("Generating client request", string(byteRequest))
 	if err != nil {
 		return  ClientResponse{}, fmt.Errorf("error parsing client request", err.Error())
 	}
-	logrus.Println("Making request", clientRequest)
 
-	req, err := http.NewRequest("POST", "http://localhost:9999/api/solicitacao", bytes.NewReader(byteRequest))
+	response, err := http.MakeRequest(
+		"POST",
+		"http://localhost:9999/api/solicitacao",
+		byteRequest,
+		headersMap,
+		nil)
 
 	if err != nil {
 		return  ClientResponse{}, fmt.Errorf("Error creating client request", err.Error())
 
 	}
 
-	req.Header.Set("Content-type","application/json")
-	response, err := client.Do(req)
-	if err != nil {
-		return  ClientResponse{}, fmt.Errorf("Error on client request", err.Error())
-	}
 
 	err = json.NewDecoder(response.Body).Decode(&clientResponse)
 	logrus.Println("Response parsed", clientResponse)
